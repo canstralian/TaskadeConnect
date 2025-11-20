@@ -1,5 +1,3 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { Pool } from "@neondatabase/serverless";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 import {
   connections,
@@ -12,9 +10,7 @@ import {
   type SyncLog,
   type InsertSyncLog,
 } from "@shared/schema";
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle({ client: pool });
+import { db } from "./db";
 
 export interface IStorage {
   // Connections

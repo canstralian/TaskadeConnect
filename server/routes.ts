@@ -10,6 +10,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok" });
   });
 
+  // Database connection test
+  app.get("/api/db-test", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`SELECT 1 as test`);
+      res.json({ success: true, result });
+    } catch (error: any) {
+      console.error("DB test error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // === CONNECTIONS ===
   app.get("/api/connections", async (_req, res) => {
     try {
