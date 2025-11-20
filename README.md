@@ -1,23 +1,30 @@
+# 🔄 SyncNode - Workflow Automation Platform
 
-# SyncNode - Workflow Automation Platform
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF.svg?logo=vite)](https://vitejs.dev/)
+[![Express](https://img.shields.io/badge/Express-4.21-000000.svg?logo=express)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791.svg?logo=postgresql)](https://www.postgresql.org/)
 
-A modern workflow automation platform that enables seamless data synchronization between different services like Taskade, Notion, Replit, and Slack.
+A modern workflow automation platform that enables seamless data synchronization between different services like Taskade, Notion, Replit, and Slack. ✨
 
-## Overview
+## 📋 Overview
 
 SyncNode provides a visual interface for building automation workflows with triggers, actions, and filters, along with comprehensive monitoring and connection management capabilities.
 
-## Features
+## ✨ Features
 
-- **Visual Workflow Builder**: Create automation workflows with an intuitive interface
-- **Multi-Service Integration**: Connect with Taskade, Notion, Replit, Slack, and more
-- **Real-time Monitoring**: Track sync history and workflow execution status
-- **Connection Management**: Securely store and manage API credentials
-- **Dashboard Analytics**: View aggregated statistics on active syncs and task completion
+- 🎨 **Visual Workflow Builder**: Create automation workflows with an intuitive interface
+- 🔗 **Multi-Service Integration**: Connect with Taskade, Notion, Replit, Slack, and more
+- 📊 **Real-time Monitoring**: Track sync history and workflow execution status
+- 🔐 **Connection Management**: Securely store and manage API credentials
+- 📈 **Dashboard Analytics**: View aggregated statistics on active syncs and task completion
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-### Frontend
+### 🎨 Frontend
 - **Framework**: React 19 with TypeScript
 - **Build Tool**: Vite 7
 - **UI Components**: Radix UI primitives with shadcn/ui (new-york theme)
@@ -26,23 +33,23 @@ SyncNode provides a visual interface for building automation workflows with trig
 - **State Management**: TanStack Query (React Query)
 - **Icons**: Lucide React
 
-### Backend
+### ⚙️ Backend
 - **Framework**: Express.js with TypeScript
 - **Runtime**: Node.js
 - **Database**: PostgreSQL (via Neon serverless)
 - **ORM**: Drizzle ORM
 - **Validation**: Zod
 
-## Getting Started
+## 🚀 Getting Started
 
-### Prerequisites
+### 📦 Prerequisites
 
 - Node.js 20 or higher
 - PostgreSQL database (Neon serverless recommended)
 
-### Installation
+### 💻 Installation
 
-1. Clone the repository
+1. Clone the repository 📥
 2. Install dependencies:
 ```bash
 npm install
@@ -63,7 +70,7 @@ npm run db:push
 npm run db:seed
 ```
 
-### Development
+### 🔧 Development
 
 Start the development server:
 ```bash
@@ -72,7 +79,7 @@ npm run dev
 
 The application will be available at `http://0.0.0.0:5000`
 
-### Building for Production
+### 📦 Building for Production
 
 Build the application:
 ```bash
@@ -84,7 +91,7 @@ Start the production server:
 npm start
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 ├── client/                 # Frontend React application
@@ -104,56 +111,56 @@ npm start
 └── migrations/             # Database migrations
 ```
 
-## API Endpoints
+## 🔌 API Endpoints
 
-### Connections
+### 🔗 Connections
 - `GET /api/connections` - List all service connections
 - `POST /api/connections` - Create a new connection
 - `PATCH /api/connections/:id` - Update a connection
 - `DELETE /api/connections/:id` - Delete a connection
 
-### Workflows
+### 🔄 Workflows
 - `GET /api/workflows` - List all workflows
 - `GET /api/workflows/:id` - Get a specific workflow
 - `POST /api/workflows` - Create a new workflow
 - `PATCH /api/workflows/:id` - Update a workflow
 - `DELETE /api/workflows/:id` - Delete a workflow
 
-### Sync Logs
+### 📝 Sync Logs
 - `GET /api/sync-logs` - List synchronization history
 
-### Dashboard
+### 📊 Dashboard
 - `GET /api/dashboard/stats` - Get aggregated statistics
 
-## Database Schema
+## 🗄️ Database Schema
 
-### Connections Table
+### 🔗 Connections Table
 Stores external service connection configurations and API keys.
 
-### Workflows Table
+### 🔄 Workflows Table
 Defines automation workflows with source/target services and execution schedules.
 
-### Sync Logs Table
+### 📝 Sync Logs Table
 Records workflow execution history with status and metadata.
 
-## Development Tools
+## 🔨 Development Tools
 
 - **TypeScript**: Type safety across the entire stack
 - **Drizzle Kit**: Database migration management
 - **ESBuild**: Fast server bundling
 - **Replit Plugins**: Enhanced development experience
 
-## Contributing
+## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+1. Fork the repository 🍴
+2. Create a feature branch 🌿
+3. Make your changes ✍️
+4. Submit a pull request 🚀
 
-## License
+## 📄 License
 
 MIT
 
-## Support
+## 💬 Support
 
-For questions or issues, please open an issue on the repository.
+For questions or issues, please open an issue on the repository. 🙋‍♂️
