@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, AlertCircle, Key, ExternalLink, RefreshCcw, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Key, ExternalLink, RefreshCcw, Loader2, Copy, Webhook } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { connectionsAPI } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -14,11 +14,17 @@ import type { Connection } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
 // Service configurations
-const SERVICE_CONFIG: Record<string, { icon: string; color: string; description: string }> = {
+const SERVICE_CONFIG: Record<string, { 
+  icon: string; 
+  color: string; 
+  description: string;
+  supportsWebhooks?: boolean;
+}> = {
   taskade: {
     icon: "T",
     color: "bg-pink-500",
-    description: "Sync projects, tasks, and team members."
+    description: "Sync projects, tasks, and team members.",
+    supportsWebhooks: true,
   },
   notion: {
     icon: "N",
@@ -34,6 +40,12 @@ const SERVICE_CONFIG: Record<string, { icon: string; color: string; description:
     icon: "S",
     color: "bg-purple-500",
     description: "Send notifications and updates to channels."
+  },
+  github: {
+    icon: "G",
+    color: "bg-gray-800",
+    description: "Integrate with GitHub repositories and issues.",
+    supportsWebhooks: true,
   }
 };
 
@@ -183,6 +195,7 @@ export default function Connections() {
                   placeholder="sk_live_..." 
                   value={formData.apiKey}
                   onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                  data-testid="input-apiKey"
                 />
                 <Key className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
               </div>
@@ -200,7 +213,102 @@ export default function Connections() {
                   placeholder="Enter workspace ID"
                   value={formData.workspace}
                   onChange={(e) => setFormData({ ...formData, workspace: e.target.value })}
+                  data-testid="input-workspace"
                 />
+              </div>
+            )}
+
+            {/* Webhook Configuration */}
+            {selectedConnection && SERVICE_CONFIG[selectedConnection.service]?.supportsWebhooks && (
+              <div className="grid gap-3 p-4 border border-border/50 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Webhook className="w-4 h-4 text-primary" />
+                  <span>Webhook Setup</span>
+                </div>
+                
+                {selectedConnection.webhookUrl ? (
+                  <>
+                    <div className="grid gap-2">
+                      <Label htmlFor="webhookUrl" className="text-xs text-muted-foreground">
+                        Webhook URL
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          id="webhookUrl"
+                          value={selectedConnection.webhookUrl}
+                          readOnly
+                          className="font-mono text-xs bg-background"
+                          data-testid="input-webhookUrl"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedConnection.webhookUrl || "");
+                            toast({ title: "Webhook URL copied to clipboard" });
+                          }}
+                          data-testid="button-copyWebhookUrl"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="webhookSecret" className="text-xs text-muted-foreground">
+                        Webhook Secret
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          id="webhookSecret"
+                          value={selectedConnection.webhookSecret ? "•".repeat(32) : ""}
+                          readOnly
+                          className="font-mono text-xs bg-background"
+                          data-testid="input-webhookSecret"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedConnection.webhookSecret || "");
+                            toast({ title: "Webhook secret copied to clipboard" });
+                          }}
+                          data-testid="button-copyWebhookSecret"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p className="font-medium">Setup instructions:</p>
+                      {selectedConnection.service === "github" && (
+                        <ol className="list-decimal list-inside space-y-1 ml-2">
+                          <li>Go to your GitHub repository settings</li>
+                          <li>Navigate to Webhooks → Add webhook</li>
+                          <li>Paste the URL above and select JSON content type</li>
+                          <li>Enter the secret for secure delivery</li>
+                          <li>Select events: push, pull_request, issues</li>
+                        </ol>
+                      )}
+                      {selectedConnection.service === "taskade" && (
+                        <ol className="list-decimal list-inside space-y-1 ml-2">
+                          <li>Go to your Taskade workspace settings</li>
+                          <li>Navigate to Integrations → Webhooks</li>
+                          <li>Add the webhook URL above</li>
+                          <li>Configure authentication with the secret</li>
+                          <li>Select events: task.created, task.completed</li>
+                        </ol>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Save your connection to generate webhook credentials.
+                  </p>
+                )}
               </div>
             )}
           </div>
