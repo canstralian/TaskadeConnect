@@ -3,12 +3,35 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertConnectionSchema, insertWorkflowSchema, insertSyncLogSchema } from "@shared/schema";
 import { z } from "zod";
+import { handleWebhook } from "./webhooks/handler";
+import express from "express";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+
+  // === WEBHOOKS ===
+  // Webhook endpoint preserves raw body as Buffer for signature verification
+  app.post(
+    "/api/webhooks/:service/:connectionId",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      // Preserve original Buffer for exact byte-level signature verification
+      if (Buffer.isBuffer(req.body)) {
+        // Store raw Buffer for signature verification
+        (req as any).rawBody = req.body;
+        // Parse separately for business logic
+        try {
+          req.body = JSON.parse(req.body.toString("utf8"));
+        } catch (e) {
+          return res.status(400).json({ error: "Invalid JSON payload" });
+        }
+      }
+      await handleWebhook(req, res);
+    }
+  );
 
   // Database connection test
   app.get("/api/db-test", async (_req, res) => {

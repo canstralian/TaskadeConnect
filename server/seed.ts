@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { connections, workflows, syncLogs } from "@shared/schema";
+import crypto from "crypto";
 
 async function seed() {
   console.log("Seeding database...");
@@ -44,6 +45,36 @@ async function seed() {
     apiKey: null,
     config: {},
     lastSync: null,
+  });
+
+  // Add GitHub connection with webhook
+  const githubConn = await db.insert(connections).values({
+    name: "GitHub",
+    service: "github",
+    status: "connected",
+    apiKey: "ghp_mock_token_abc123",
+    config: { 
+      repositories: ["myorg/myrepo"],
+      events: ["push", "pull_request", "issues"]
+    },
+    webhookSecret: crypto.randomBytes(32).toString("hex"),
+    webhookUrl: "http://localhost:5000/api/webhooks/github/5", // Will be updated by storage
+    lastSync: new Date(),
+  }).returning();
+
+  // Add Taskade connection with webhook (for receiving events)
+  await db.insert(connections).values({
+    name: "Taskade Workspace",
+    service: "taskade",
+    status: "connected",
+    apiKey: "task_webhook_token_xyz789",
+    config: {
+      workspace_id: "workspace-123",
+      events: ["task_created", "task_completed"]
+    },
+    webhookSecret: crypto.randomBytes(32).toString("hex"),
+    webhookUrl: "http://localhost:5000/api/webhooks/taskade/6",
+    lastSync: new Date(),
   });
 
   // Insert workflows
@@ -96,6 +127,65 @@ async function seed() {
     trigger: { type: "database_item_created", database_id: "crm" },
     actions: [{ type: "create_project" }],
     config: {},
+    lastRun: null,
+  });
+
+  // Add webhook-based workflows
+  await db.insert(workflows).values({
+    title: "GitHub Push → Taskade Task",
+    description: "Create a Taskade task when code is pushed to main branch.",
+    sourceService: "github",
+    targetService: "taskade",
+    status: "active",
+    schedule: "Webhook",
+    config: {
+      trigger: {
+        type: "webhook",
+        event: "github.push",
+      },
+      filters: [
+        { field: "ref", operator: "equals", value: "refs/heads/main" }
+      ],
+      actions: [
+        {
+          type: "create_task",
+          params: {
+            title: "New commit: ${payload.commits[0].message}",
+            description: "by ${payload.commits[0].author.name}",
+            project: "Development"
+          }
+        }
+      ],
+    },
+    lastRun: null,
+  });
+
+  await db.insert(workflows).values({
+    title: "Taskade Task Created → GitHub Issue",
+    description: "Create GitHub issue when a high-priority task is created in Taskade.",
+    sourceService: "taskade",
+    targetService: "github",
+    status: "active",
+    schedule: "Webhook",
+    config: {
+      trigger: {
+        type: "webhook",
+        event: "taskade.task.created",
+      },
+      filters: [
+        { field: "priority", operator: "equals", value: "high" }
+      ],
+      actions: [
+        {
+          type: "create_issue",
+          params: {
+            title: "${payload.task_name}",
+            body: "Created from Taskade project: ${payload.project_name}",
+            labels: ["taskade", "high-priority"]
+          }
+        }
+      ],
+    },
     lastRun: null,
   });
 

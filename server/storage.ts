@@ -11,6 +11,7 @@ import {
   type InsertSyncLog,
 } from "@shared/schema";
 import { db } from "./db";
+import crypto from "crypto";
 
 export interface IStorage {
   // Connections
@@ -51,8 +52,41 @@ export class Storage implements IStorage {
   }
 
   async createConnection(data: InsertConnection): Promise<Connection> {
-    const result = await db.insert(connections).values(data).returning();
-    return result[0];
+    // Generate webhook URL and secret for services that support webhooks
+    const webhookServices = ["github", "taskade"];
+    const needsWebhook = webhookServices.includes(data.service);
+    
+    const connectionData: any = { ...data };
+    
+    if (needsWebhook) {
+      // Generate a random webhook secret (32 bytes hex = 64 characters)
+      connectionData.webhookSecret = crypto.randomBytes(32).toString("hex");
+      // webhookUrl will be generated based on connection ID
+      // We'll update it after insertion
+    }
+    
+    const result = await db.insert(connections).values(connectionData).returning();
+    const connection = result[0];
+    
+    // Update with full webhook URL if needed
+    if (needsWebhook && connection.id) {
+      const baseUrl = process.env.REPLIT_DOMAINS 
+        ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+        : process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : "http://localhost:5000";
+      
+      const webhookUrl = `${baseUrl}/api/webhooks/${data.service}/${connection.id}`;
+      
+      await db
+        .update(connections)
+        .set({ webhookUrl })
+        .where(eq(connections.id, connection.id));
+      
+      connection.webhookUrl = webhookUrl;
+    }
+    
+    return connection;
   }
 
   async updateConnection(id: number, data: Partial<InsertConnection>): Promise<Connection | undefined> {

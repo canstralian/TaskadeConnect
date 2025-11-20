@@ -5,12 +5,14 @@ import { z } from "zod";
 export const connections = pgTable("connections", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  service: text("service").notNull(), // "taskade", "notion", "replit", etc.
+  service: text("service").notNull(), // "taskade", "notion", "replit", "github", etc.
   description: text("description"),
   apiKey: text("api_key"),
   config: jsonb("config").$type<Record<string, any>>().default({}),
   status: text("status").notNull().default("disconnected"), // "connected", "disconnected", "error"
   lastSync: timestamp("last_sync"),
+  webhookUrl: text("webhook_url"),
+  webhookSecret: text("webhook_secret"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
