@@ -16,8 +16,10 @@ import {
   Zap,
   Database,
   ArrowDown,
-  X
+  X,
+  Webhook
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface Step {
@@ -34,18 +36,18 @@ const INITIAL_STEPS: Step[] = [
   {
     id: "step-1",
     type: "trigger",
-    app: "Notion",
-    action: "New Database Item",
-    description: "Triggers when a new item is created in 'Projects'",
-    icon: Database,
-    config: { database_id: "proj_12345" }
+    app: "GitHub",
+    action: "Push Event",
+    description: "Triggers when code is pushed to repository",
+    icon: Webhook,
+    config: { triggerType: "webhook", event: "github.push" }
   },
   {
     id: "step-2",
     type: "action",
     app: "Taskade",
-    action: "Create Project",
-    description: "Create a new project in Workspace 'Alpha'",
+    action: "Create Task",
+    description: "Create a new task in Workspace 'Alpha'",
     icon: Zap,
     config: { workspace_id: "ws_98765", template_id: "tpl_basic" }
   }
@@ -57,6 +59,14 @@ export default function WorkflowEditor() {
   const [, setLocation] = useLocation();
 
   const selectedStep = steps.find(s => s.id === selectedStepId);
+
+  const updateStepConfig = (stepId: string, configUpdates: Record<string, string>) => {
+    setSteps(prev => prev.map(step => 
+      step.id === stepId 
+        ? { ...step, config: { ...step.config, ...configUpdates } }
+        : step
+    ));
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] -m-4 md:-m-8">
@@ -201,29 +211,121 @@ export default function WorkflowEditor() {
                   </div>
 
                   <div className="space-y-4">
-                    <Label>Action Setup</Label>
+                    <Label>{selectedStep.type === "trigger" ? "Trigger Setup" : "Action Setup"}</Label>
                     
-                    {selectedStep.app === "Notion" ? (
+                    {selectedStep.type === "trigger" ? (
                       <div className="space-y-3">
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Database</Label>
-                          <Input defaultValue="Project Tracker 2024" />
+                          <Label className="text-xs text-muted-foreground">Trigger Type</Label>
+                          <Select 
+                            value={selectedStep.config.triggerType || "database"}
+                            onValueChange={(value) => {
+                              updateStepConfig(selectedStep.id, { 
+                                triggerType: value,
+                                // Clear incompatible fields when switching
+                                ...(value === "webhook" ? { database_id: "", trigger_on: "" } : { event: "" })
+                              });
+                            }}
+                          >
+                            <SelectTrigger data-testid="select-triggerType">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="database" data-testid="option-database">
+                                <div className="flex items-center gap-2">
+                                  <Database className="w-4 h-4" />
+                                  <span>Database Change</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="webhook" data-testid="option-webhook">
+                                <div className="flex items-center gap-2">
+                                  <Webhook className="w-4 h-4" />
+                                  <span>Webhook Event</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Trigger On</Label>
-                          <Input defaultValue="New Page Created" />
-                        </div>
+
+                        {selectedStep.config.triggerType === "webhook" ? (
+                          <>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground">Event Type</Label>
+                              <Select 
+                                value={selectedStep.config.event || ""}
+                                onValueChange={(value) => updateStepConfig(selectedStep.id, { event: value })}
+                              >
+                                <SelectTrigger data-testid="select-webhookEvent">
+                                  <SelectValue placeholder="Select event" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {selectedStep.app === "GitHub" ? (
+                                    <>
+                                      <SelectItem value="github.push" data-testid="option-github-push">Push (Code pushed to branch)</SelectItem>
+                                      <SelectItem value="github.pull_request" data-testid="option-github-pr">Pull Request (PR opened/closed)</SelectItem>
+                                      <SelectItem value="github.issues" data-testid="option-github-issues">Issues (Issue created/updated)</SelectItem>
+                                    </>
+                                  ) : selectedStep.app === "Taskade" ? (
+                                    <>
+                                      <SelectItem value="taskade.task.created" data-testid="option-taskade-created">Task Created</SelectItem>
+                                      <SelectItem value="taskade.task.completed" data-testid="option-taskade-completed">Task Completed</SelectItem>
+                                      <SelectItem value="taskade.task.updated" data-testid="option-taskade-updated">Task Updated</SelectItem>
+                                    </>
+                                  ) : (
+                                    <SelectItem value="custom" disabled>No events available</SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <p className="text-[10px] text-muted-foreground">
+                                <Link href="/connections">
+                                  <Button variant="link" className="h-auto p-0 text-[10px]">
+                                    Configure webhook URL in Connections →
+                                  </Button>
+                                </Link>
+                              </p>
+                            </div>
+
+                            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                              <p className="text-xs text-muted-foreground">
+                                <strong className="text-primary">Real-time trigger:</strong> This workflow will execute instantly when the event occurs in {selectedStep.app}.
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground">Database</Label>
+                              <Input defaultValue="Project Tracker 2024" data-testid="input-database" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground">Trigger On</Label>
+                              <Select 
+                                value={selectedStep.config.trigger_on || "created"}
+                                onValueChange={(value) => updateStepConfig(selectedStep.id, { trigger_on: value })}
+                              >
+                                <SelectTrigger data-testid="select-databaseTrigger">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="created">New Item Created</SelectItem>
+                                  <SelectItem value="updated">Item Updated</SelectItem>
+                                  <SelectItem value="deleted">Item Deleted</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    ) : (
+                    ) : selectedStep.app === "Taskade" ? (
                       <div className="space-y-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground">Workspace</Label>
-                          <Input defaultValue="Alpha Team" />
+                          <Input defaultValue="Alpha Team" data-testid="input-workspace" />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground">Project Name</Label>
                           <div className="flex gap-2">
-                             <Input defaultValue="" placeholder="Enter name" className="flex-1"/>
+                             <Input defaultValue="" placeholder="Enter name" className="flex-1" data-testid="input-projectName"/>
                              <Button variant="outline" size="icon" className="shrink-0">
                                <Database className="w-4 h-4 text-muted-foreground" />
                              </Button>
@@ -231,7 +333,7 @@ export default function WorkflowEditor() {
                           <p className="text-[10px] text-muted-foreground">Map data from previous steps</p>
                         </div>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
