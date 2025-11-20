@@ -17,7 +17,8 @@ import {
   Database,
   ArrowDown,
   X,
-  Webhook
+  Webhook,
+  Brain
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,15 @@ const INITIAL_STEPS: Step[] = [
   },
   {
     id: "step-2",
+    type: "action",
+    app: "AI Agent",
+    action: "Analyze & Respond",
+    description: "Use AI via MCP to analyze data and generate insights",
+    icon: Brain,
+    config: { model: "gpt-4o-mini", prompt: "Analyze the GitHub push event and provide insights" }
+  },
+  {
+    id: "step-3",
     type: "action",
     app: "Taskade",
     action: "Create Task",
@@ -131,7 +141,9 @@ export default function WorkflowEditor() {
                     <div className={cn(
                       "w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-md shrink-0",
                       step.app === "Notion" ? "bg-black dark:bg-white dark:text-black" : 
-                      step.app === "Taskade" ? "bg-pink-500" : "bg-orange-500"
+                      step.app === "Taskade" ? "bg-pink-500" :
+                      step.app === "AI Agent" ? "bg-gradient-to-br from-violet-500 to-purple-600" : 
+                      "bg-orange-500"
                     )}>
                       <step.icon className="w-6 h-6" />
                     </div>
@@ -191,9 +203,11 @@ export default function WorkflowEditor() {
                     <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/20">
                       <div className={cn(
                         "w-8 h-8 rounded-md flex items-center justify-center text-white text-xs",
-                        selectedStep.app === "Notion" ? "bg-black" : "bg-pink-500"
+                        selectedStep.app === "Notion" ? "bg-black" : 
+                        selectedStep.app === "AI Agent" ? "bg-gradient-to-br from-violet-500 to-purple-600" :
+                        "bg-pink-500"
                       )}>
-                        {selectedStep.app[0]}
+                        {selectedStep.app === "AI Agent" ? "AI" : selectedStep.app[0]}
                       </div>
                       <div>
                         <p className="font-medium text-sm">{selectedStep.app}</p>
@@ -315,6 +329,42 @@ export default function WorkflowEditor() {
                             </div>
                           </>
                         )}
+                      </div>
+                    ) : selectedStep.app === "AI Agent" ? (
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">AI Model</Label>
+                          <Select 
+                            value={selectedStep.config.model || "gpt-4o-mini"}
+                            onValueChange={(value) => updateStepConfig(selectedStep.id, { model: value })}
+                          >
+                            <SelectTrigger data-testid="select-aiModel">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fast & Cost-effective)</SelectItem>
+                              <SelectItem value="gpt-4o">GPT-4o (Balanced)</SelectItem>
+                              <SelectItem value="gpt-5-mini">GPT-5 Mini (Advanced)</SelectItem>
+                              <SelectItem value="gpt-5">GPT-5 (Most Capable)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">AI Prompt</Label>
+                          <textarea 
+                            className="w-full min-h-[120px] px-3 py-2 text-sm border rounded-md bg-background resize-none"
+                            placeholder="Describe what the AI should do with the data..."
+                            value={selectedStep.config.prompt || ""}
+                            onChange={(e) => updateStepConfig(selectedStep.id, { prompt: e.target.value })}
+                            data-testid="textarea-aiPrompt"
+                          />
+                          <p className="text-[10px] text-muted-foreground">Map data from previous steps using {"{variable_name}"}</p>
+                        </div>
+                        <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
+                          <p className="text-xs text-muted-foreground">
+                            <strong className="text-violet-600">MCP Integration:</strong> AI agent will analyze the incoming data and provide intelligent responses using Model Context Protocol.
+                          </p>
+                        </div>
                       </div>
                     ) : selectedStep.app === "Taskade" ? (
                       <div className="space-y-3">

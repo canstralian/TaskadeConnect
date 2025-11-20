@@ -20,6 +20,11 @@ const SERVICE_CONFIG: Record<string, {
   description: string;
   supportsWebhooks?: boolean;
 }> = {
+  ai_agent: {
+    icon: "AI",
+    color: "bg-gradient-to-br from-violet-500 to-purple-600",
+    description: "Connect with AI agents via MCP (Model Context Protocol) for intelligent automation."
+  },
   taskade: {
     icon: "T",
     color: "bg-pink-500",

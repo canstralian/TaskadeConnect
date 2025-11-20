@@ -1,4 +1,4 @@
-import type { Connection, Workflow, SyncLog, InsertConnection, InsertWorkflow, InsertSyncLog } from "@shared/schema";
+import type { Connection, Workflow, SyncLog, InsertConnection, InsertWorkflow, InsertSyncLog, McpMessage } from "@shared/schema";
 
 const API_BASE = "/api";
 
@@ -87,4 +87,26 @@ export const dashboardAPI = {
       apiRequests: number;
       storageUsed: string;
     }>(`${API_BASE}/dashboard/stats`),
+};
+
+// MCP / AI Agents
+export const mcpAPI = {
+  getMessages: (connectionId: number, limit?: number) => {
+    const url = limit 
+      ? `${API_BASE}/mcp/messages/${connectionId}?limit=${limit}` 
+      : `${API_BASE}/mcp/messages/${connectionId}`;
+    return fetchJSON<McpMessage[]>(url);
+  },
+
+  chat: (data: { connectionId: number; userMessage: string; model?: string; systemPrompt?: string }) =>
+    fetchJSON<{ message: McpMessage; assistantMessage: McpMessage }>(`${API_BASE}/mcp/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
+  clearMessages: (connectionId: number) =>
+    fetchJSON<{ success: boolean }>(`${API_BASE}/mcp/messages/${connectionId}`, {
+      method: "DELETE",
+    }),
 };

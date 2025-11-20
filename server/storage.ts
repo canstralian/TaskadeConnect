@@ -3,12 +3,15 @@ import {
   connections,
   workflows,
   syncLogs,
+  mcpMessages,
   type Connection,
   type InsertConnection,
   type Workflow,
   type InsertWorkflow,
   type SyncLog,
   type InsertSyncLog,
+  type McpMessage,
+  type InsertMcpMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import crypto from "crypto";
@@ -38,6 +41,11 @@ export interface IStorage {
     apiRequests: number;
     storageUsed: string;
   }>;
+
+  // MCP Messages
+  getMcpMessages(connectionId: number, limit?: number): Promise<McpMessage[]>;
+  createMcpMessage(data: InsertMcpMessage): Promise<McpMessage>;
+  deleteMcpMessages(connectionId: number): Promise<boolean>;
 }
 
 export class Storage implements IStorage {
@@ -181,6 +189,29 @@ export class Storage implements IStorage {
       apiRequests: Number(totalRequests[0].count),
       storageUsed: `${storagePercent}%`,
     };
+  }
+
+  // MCP Messages
+  async getMcpMessages(connectionId: number, limit: number = 100): Promise<McpMessage[]> {
+    return await db
+      .select()
+      .from(mcpMessages)
+      .where(eq(mcpMessages.connectionId, connectionId))
+      .orderBy(mcpMessages.createdAt)
+      .limit(limit);
+  }
+
+  async createMcpMessage(data: InsertMcpMessage): Promise<McpMessage> {
+    const result = await db.insert(mcpMessages).values(data as any).returning();
+    return result[0];
+  }
+
+  async deleteMcpMessages(connectionId: number): Promise<boolean> {
+    const result = await db
+      .delete(mcpMessages)
+      .where(eq(mcpMessages.connectionId, connectionId))
+      .returning();
+    return result.length > 0;
   }
 }
 

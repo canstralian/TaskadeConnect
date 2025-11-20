@@ -49,6 +49,19 @@ export const syncLogs = pgTable("sync_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const mcpMessages = pgTable("mcp_messages", {
+  id: serial("id").primaryKey(),
+  connectionId: integer("connection_id").references(() => connections.id).notNull(),
+  role: text("role").notNull(), // "user", "assistant", "system"
+  content: text("content").notNull(),
+  metadata: jsonb("metadata").$type<{
+    model?: string;
+    tokens?: number;
+    tools?: Array<Record<string, any>>;
+  }>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertConnectionSchema = createInsertSchema(connections).omit({
   id: true,
@@ -67,6 +80,11 @@ export const insertSyncLogSchema = createInsertSchema(syncLogs).omit({
   createdAt: true,
 });
 
+export const insertMcpMessageSchema = createInsertSchema(mcpMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertConnection = z.infer<typeof insertConnectionSchema>;
 export type Connection = typeof connections.$inferSelect;
@@ -76,3 +94,6 @@ export type Workflow = typeof workflows.$inferSelect;
 
 export type InsertSyncLog = z.infer<typeof insertSyncLogSchema>;
 export type SyncLog = typeof syncLogs.$inferSelect;
+
+export type InsertMcpMessage = z.infer<typeof insertMcpMessageSchema>;
+export type McpMessage = typeof mcpMessages.$inferSelect;

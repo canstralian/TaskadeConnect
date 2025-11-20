@@ -5,6 +5,7 @@ import { insertConnectionSchema, insertWorkflowSchema, insertSyncLogSchema } fro
 import { z } from "zod";
 import { handleWebhook } from "./webhooks/handler";
 import express from "express";
+import { mcpService } from "./mcp-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
@@ -237,6 +238,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
       res.status(500).json({ error: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // === MCP / AI AGENTS ===
+  app.get("/api/mcp/messages/:connectionId", async (req, res) => {
+    try {
+      const connectionId = parseInt(req.params.connectionId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const messages = await mcpService.getHistory(connectionId, limit);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching MCP messages:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  app.post("/api/mcp/chat", async (req, res) => {
+    try {
+      const { connectionId, userMessage, model, systemPrompt } = req.body;
+      
+      if (!connectionId || !userMessage) {
+        return res.status(400).json({ error: "connectionId and userMessage are required" });
+      }
+
+      const result = await mcpService.chat({
+        connectionId: parseInt(connectionId),
+        userMessage,
+        model,
+        systemPrompt,
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error in MCP chat:", error);
+      res.status(500).json({ error: "Failed to process chat request" });
+    }
+  });
+
+  app.post("/api/mcp/chat/stream", async (req, res) => {
+    try {
+      const { connectionId, userMessage, model, systemPrompt } = req.body;
+      
+      if (!connectionId || !userMessage) {
+        return res.status(400).json({ error: "connectionId and userMessage are required" });
+      }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      const stream = await mcpService.streamChat({
+        connectionId: parseInt(connectionId),
+        userMessage,
+        model,
+        systemPrompt,
+      });
+
+      const reader = stream.getReader();
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+      
+      res.end();
+    } catch (error) {
+      console.error("Error in MCP streaming chat:", error);
+      res.status(500).json({ error: "Failed to process streaming chat request" });
+    }
+  });
+
+  app.delete("/api/mcp/messages/:connectionId", async (req, res) => {
+    try {
+      const connectionId = parseInt(req.params.connectionId);
+      const success = await mcpService.clearHistory(connectionId);
+      res.json({ success });
+    } catch (error) {
+      console.error("Error clearing MCP messages:", error);
+      res.status(500).json({ error: "Failed to clear messages" });
     }
   });
 

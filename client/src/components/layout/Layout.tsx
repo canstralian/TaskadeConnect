@@ -7,7 +7,8 @@ import {
   Settings, 
   Link2,
   Menu,
-  X
+  X,
+  Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Workflow, label: "Workflows", href: "/workflows" },
     { icon: Link2, label: "Connections", href: "/connections" },
+    { icon: Brain, label: "AI Agent", href: "/ai-agent" },
     { icon: History, label: "Sync History", href: "/history" },
     { icon: Settings, label: "Settings", href: "/settings" },
   ];

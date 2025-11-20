@@ -10,6 +10,7 @@ import Connections from "@/pages/Connections";
 import Workflows from "@/pages/Workflows";
 import WorkflowEditor from "@/pages/WorkflowEditor";
 import History from "@/pages/History";
+import AIAgent from "@/pages/AIAgent";
 
 // Placeholder pages for now
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -28,6 +29,7 @@ function Router() {
         <Route path="/workflows/new" component={WorkflowEditor} />
         <Route path="/workflows/:id" component={WorkflowEditor} />
         <Route path="/connections" component={Connections} />
+        <Route path="/ai-agent" component={AIAgent} />
         <Route path="/history" component={History} />
         <Route path="/settings" component={() => <PlaceholderPage title="Settings" />} />
         <Route component={NotFound} />
