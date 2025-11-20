@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,25 +21,32 @@ import {
 } from "@/components/ui/select";
 import { 
   Search, 
-  Filter, 
   Download, 
   CheckCircle2, 
   XCircle, 
   AlertTriangle,
-  ArrowRight
+  Loader2,
+  Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const LOGS = [
-  { id: "LOG-9281", workflow: "Notion Projects → Taskade", time: "2023-10-24 14:30:22", status: "success", items: 12, duration: "1.2s" },
-  { id: "LOG-9282", workflow: "Replit DB → Taskade Team", time: "2023-10-24 14:25:10", status: "success", items: 5, duration: "0.8s" },
-  { id: "LOG-9283", workflow: "Taskade Tasks → Notion", time: "2023-10-24 13:15:00", status: "error", items: 0, duration: "5.0s", error: "API Rate Limit Exceeded" },
-  { id: "LOG-9284", workflow: "Notion Projects → Taskade", time: "2023-10-24 12:30:22", status: "success", items: 3, duration: "1.1s" },
-  { id: "LOG-9285", workflow: "New Client Onboarding", time: "2023-10-24 11:45:00", status: "warning", items: 1, duration: "2.3s", message: "Partial sync - 1 field skipped" },
-  { id: "LOG-9286", workflow: "Replit DB → Taskade Team", time: "2023-10-24 10:25:10", status: "success", items: 8, duration: "0.9s" },
-];
+import { syncLogsAPI } from "@/lib/api";
+import { format } from "date-fns";
 
 export default function History() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const { data: logs, isLoading } = useQuery({
+    queryKey: ["sync-logs"],
+    queryFn: () => syncLogsAPI.getAll(),
+  });
+
+  const filteredLogs = logs?.filter(log => {
+    const matchesSearch = log.workflowName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || log.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  }) || [];
+
   return (
     <div className="space-y-8">
       <div>
@@ -52,9 +60,14 @@ export default function History() {
             <div className="flex items-center gap-2 flex-1">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search logs by ID or Workflow..." className="pl-10" />
+                <Input 
+                  placeholder="Search logs by workflow..." 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <Select defaultValue="all">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -74,46 +87,60 @@ export default function History() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Log ID</TableHead>
-                <TableHead>Workflow</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead className="text-right">Duration</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {LOGS.map((log) => (
-                <TableRow key={log.id} className="group cursor-pointer hover:bg-muted/50">
-                  <TableCell className="font-mono text-xs text-muted-foreground">{log.id}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{log.workflow}</div>
-                    {log.error && <div className="text-xs text-destructive mt-0.5">{log.error}</div>}
-                    {log.message && <div className="text-xs text-amber-600 mt-0.5">{log.message}</div>}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={cn(
-                      "capitalize",
-                      log.status === "success" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                      log.status === "error" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                      "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                    )}>
-                      {log.status === "success" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                      {log.status === "error" && <XCircle className="w-3 h-3 mr-1" />}
-                      {log.status === "warning" && <AlertTriangle className="w-3 h-3 mr-1" />}
-                      {log.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{log.time}</TableCell>
-                  <TableCell className="text-sm">{log.items}</TableCell>
-                  <TableCell className="text-right text-sm font-mono text-muted-foreground">{log.duration}</TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">
+              <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No sync history found</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Log ID</TableHead>
+                  <TableHead>Workflow</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead className="text-right">Duration</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredLogs.map((log) => (
+                  <TableRow key={log.id} className="group cursor-pointer hover:bg-muted/50">
+                    <TableCell className="font-mono text-xs text-muted-foreground">LOG-{log.id}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{log.workflowName}</div>
+                      {log.errorMessage && <div className="text-xs text-destructive mt-0.5">{log.errorMessage}</div>}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn(
+                        "capitalize",
+                        log.status === "success" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                        log.status === "error" ? "bg-destructive/10 text-destructive border-destructive/20" :
+                        "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                      )}>
+                        {log.status === "success" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                        {log.status === "error" && <XCircle className="w-3 h-3 mr-1" />}
+                        {log.status === "warning" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {log.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {format(new Date(log.createdAt), "yyyy-MM-dd HH:mm:ss")}
+                    </TableCell>
+                    <TableCell className="text-sm">{log.itemsProcessed}</TableCell>
+                    <TableCell className="text-right text-sm font-mono text-muted-foreground">
+                      {log.duration ? `${(log.duration / 1000).toFixed(1)}s` : "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
