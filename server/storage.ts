@@ -84,14 +84,18 @@ export class Storage implements IStorage {
   }
 
   async createWorkflow(data: InsertWorkflow): Promise<Workflow> {
-    const result = await db.insert(workflows).values(data).returning();
+    const result = await db.insert(workflows).values(data as any).returning();
     return result[0];
   }
 
   async updateWorkflow(id: number, data: Partial<InsertWorkflow>): Promise<Workflow | undefined> {
+    const updateData: any = { ...data, updatedAt: new Date() };
+    if (data.config !== undefined) {
+      updateData.config = data.config;
+    }
     const result = await db
       .update(workflows)
-      .set({ ...data, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(workflows.id, id))
       .returning();
     return result[0];
