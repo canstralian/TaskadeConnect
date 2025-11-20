@@ -36,6 +36,8 @@ Preferred communication style: Simple, everyday language.
 - `/api/workflows` - CRUD operations for automation workflows  
 - `/api/sync-logs` - Read operations for synchronization history
 - `/api/dashboard/stats` - Aggregated statistics endpoint
+- `/api/mcp/*` - MCP-based AI agent chat, streaming, and message history
+- `/api/notion/*` - Notion database and page operations
 
 **Development Server**: Custom Vite middleware integration for HMR and SSR during development
 
@@ -53,6 +55,7 @@ Preferred communication style: Simple, everyday language.
 - `connections` table: Stores external service connection configurations and API keys
 - `workflows` table: Defines automation workflows with source/target services and execution schedules
 - `syncLogs` table: Records workflow execution history with status and metadata
+- `mcpMessages` table: Stores conversation history for MCP-based AI agent interactions
 
 **Migration Strategy**: Drizzle Kit manages schema migrations in `./migrations` directory
 
@@ -75,10 +78,19 @@ Currently not implemented - API endpoints are open. The application stores API k
 - Replit-specific plugins for runtime error overlay, cartographer, and dev banner
 - TypeScript for type safety across the entire stack
 
-**External Service Integrations** (planned/in-progress):
-- Taskade API
-- Notion API  
-- Replit Database/Storage
-- Slack API
+**External Service Integrations**:
+- **OpenAI AI Integration** (MCP-based): Fully integrated via Replit AI Integrations with chat and streaming capabilities
+  - Service layer: `server/mcp-service.ts`
+  - Frontend: `client/src/pages/AIAgent.tsx` (dedicated chat interface)
+  - Features: Conversation history, model selection (GPT-4o Mini, GPT-4o, GPT-5 Mini, GPT-5), streaming responses
+- **Notion API**: Fully integrated via Replit Notion Connection with OAuth managed automatically
+  - Service layer: `server/integrations/notion.ts`
+  - API routes: Database listing, querying, page creation/retrieval/updates
+  - Frontend API: `client/src/lib/api.ts` (notionAPI)
+  - Features: List databases, query databases, create/update pages
+- **Taskade API**: Integration layer implemented (`server/integrations/taskade.ts`)
+- **GitHub API**: Integration layer implemented (`server/integrations/github.ts`)
+- **Replit Database/Storage**: In planning
+- **Slack API**: In planning
 
 The application uses a monorepo structure with shared types between client and server via the `@shared` path alias, enabling type-safe communication across the stack.

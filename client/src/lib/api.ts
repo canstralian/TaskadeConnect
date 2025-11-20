@@ -110,3 +110,33 @@ export const mcpAPI = {
       method: "DELETE",
     }),
 };
+
+// Notion
+export const notionAPI = {
+  listDatabases: () => fetchJSON<any[]>(`${API_BASE}/notion/databases`),
+  
+  getDatabase: (id: string) => fetchJSON<any>(`${API_BASE}/notion/databases/${id}`),
+  
+  queryDatabase: (id: string, filter?: any) =>
+    fetchJSON<any[]>(`${API_BASE}/notion/databases/${id}/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filter }),
+    }),
+  
+  createPage: (databaseId: string, properties: any) =>
+    fetchJSON<any>(`${API_BASE}/notion/pages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ databaseId, properties }),
+    }),
+  
+  getPage: (id: string) => fetchJSON<any>(`${API_BASE}/notion/pages/${id}`),
+  
+  updatePage: (id: string, properties: any) =>
+    fetchJSON<any>(`${API_BASE}/notion/pages/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ properties }),
+    }),
+};

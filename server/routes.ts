@@ -6,6 +6,7 @@ import { z } from "zod";
 import { handleWebhook } from "./webhooks/handler";
 import express from "express";
 import { mcpService } from "./mcp-service";
+import { notionService } from "./integrations/notion";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
@@ -318,6 +319,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error clearing MCP messages:", error);
       res.status(500).json({ error: "Failed to clear messages" });
+    }
+  });
+
+  // === NOTION INTEGRATION ===
+  app.get("/api/notion/databases", async (_req, res) => {
+    try {
+      const databases = await notionService.listDatabases();
+      res.json(databases);
+    } catch (error: any) {
+      console.error("Error listing Notion databases:", error);
+      res.status(500).json({ error: error.message || "Failed to list databases" });
+    }
+  });
+
+  app.get("/api/notion/databases/:id", async (req, res) => {
+    try {
+      const database = await notionService.getDatabase(req.params.id);
+      res.json(database);
+    } catch (error: any) {
+      console.error("Error fetching Notion database:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch database" });
+    }
+  });
+
+  app.post("/api/notion/databases/:id/query", async (req, res) => {
+    try {
+      const { filter } = req.body;
+      const results = await notionService.queryDatabase(req.params.id, filter);
+      res.json(results);
+    } catch (error: any) {
+      console.error("Error querying Notion database:", error);
+      res.status(500).json({ error: error.message || "Failed to query database" });
+    }
+  });
+
+  app.post("/api/notion/pages", async (req, res) => {
+    try {
+      const { databaseId, properties } = req.body;
+      if (!databaseId || !properties) {
+        return res.status(400).json({ error: "databaseId and properties are required" });
+      }
+      const page = await notionService.createPage(databaseId, properties);
+      res.json(page);
+    } catch (error: any) {
+      console.error("Error creating Notion page:", error);
+      res.status(500).json({ error: error.message || "Failed to create page" });
+    }
+  });
+
+  app.get("/api/notion/pages/:id", async (req, res) => {
+    try {
+      const page = await notionService.getPage(req.params.id);
+      res.json(page);
+    } catch (error: any) {
+      console.error("Error fetching Notion page:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch page" });
+    }
+  });
+
+  app.patch("/api/notion/pages/:id", async (req, res) => {
+    try {
+      const { properties } = req.body;
+      if (!properties) {
+        return res.status(400).json({ error: "properties are required" });
+      }
+      const page = await notionService.updatePage(req.params.id, properties);
+      res.json(page);
+    } catch (error: any) {
+      console.error("Error updating Notion page:", error);
+      res.status(500).json({ error: error.message || "Failed to update page" });
     }
   });
 
