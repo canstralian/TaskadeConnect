@@ -4,23 +4,29 @@ import { eq, and } from "drizzle-orm";
 
 /**
  * Find all active workflows that should be triggered by a webhook event
+ * @param service - The service type (github, taskade, etc.)
+ * @param eventType - The event type (github.push, taskade.task.created, etc.)
+ * @param connectionId - The ID of the connection that received the webhook
  */
 export async function findMatchingWorkflows(
   service: string,
-  eventType: string
+  eventType: string,
+  connectionId: number
 ): Promise<Workflow[]> {
   try {
     // Find workflows where:
     // 1. Source service matches
-    // 2. Status is "active"
-    // 3. Trigger type is "webhook"
-    // 4. Trigger event matches
+    // 2. Source connection ID matches (ensures correct credentials)
+    // 3. Status is "active"
+    // 4. Trigger type is "webhook"
+    // 5. Trigger event matches
     const results = await db
       .select()
       .from(workflows)
       .where(
         and(
           eq(workflows.sourceService, service),
+          eq(workflows.sourceConnectionId, connectionId),
           eq(workflows.status, "active")
         )
       );

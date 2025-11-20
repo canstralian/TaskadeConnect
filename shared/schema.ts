@@ -23,6 +23,8 @@ export const workflows = pgTable("workflows", {
   description: text("description"),
   sourceService: text("source_service").notNull(),
   targetService: text("target_service").notNull(),
+  sourceConnectionId: integer("source_connection_id").references(() => connections.id),
+  targetConnectionId: integer("target_connection_id").references(() => connections.id),
   status: text("status").notNull().default("draft"), // "active", "paused", "draft"
   schedule: text("schedule").default("manual"), // "real-time", "hourly", "daily", "manual"
   config: jsonb("config").$type<{

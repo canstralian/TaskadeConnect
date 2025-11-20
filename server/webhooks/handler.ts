@@ -74,8 +74,8 @@ export async function handleWebhook(req: Request, res: Response) {
       return res.status(400).json({ error: "Could not determine event type" });
     }
 
-    // 4. Find matching workflows
-    const workflows = await findMatchingWorkflows(service, eventType);
+    // 4. Find matching workflows for this specific connection
+    const workflows = await findMatchingWorkflows(service, eventType, connectionIdNum);
 
     if (workflows.length === 0) {
       // No workflows to execute, but webhook is valid

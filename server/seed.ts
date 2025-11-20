@@ -63,19 +63,20 @@ async function seed() {
   }).returning();
 
   // Add Taskade connection with webhook (for receiving events)
-  await db.insert(connections).values({
+  const taskadeWebhookConn = await db.insert(connections).values({
     name: "Taskade Workspace",
     service: "taskade",
     status: "connected",
     apiKey: "task_webhook_token_xyz789",
     config: {
       workspace_id: "workspace-123",
+      projectId: "default-project-123",
       events: ["task_created", "task_completed"]
     },
     webhookSecret: crypto.randomBytes(32).toString("hex"),
     webhookUrl: "http://localhost:5000/api/webhooks/taskade/6",
     lastSync: new Date(),
-  });
+  }).returning();
 
   // Insert workflows
   const workflow1 = await db.insert(workflows).values({
@@ -136,6 +137,8 @@ async function seed() {
     description: "Create a Taskade task when code is pushed to main branch.",
     sourceService: "github",
     targetService: "taskade",
+    sourceConnectionId: githubConn[0].id,
+    targetConnectionId: taskadeWebhookConn[0].id,
     status: "active",
     schedule: "Webhook",
     config: {
@@ -165,6 +168,8 @@ async function seed() {
     description: "Create GitHub issue when a high-priority task is created in Taskade.",
     sourceService: "taskade",
     targetService: "github",
+    sourceConnectionId: taskadeWebhookConn[0].id,
+    targetConnectionId: githubConn[0].id,
     status: "active",
     schedule: "Webhook",
     config: {

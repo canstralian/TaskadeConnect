@@ -1,8 +1,10 @@
 import type { Workflow } from "@shared/schema";
 import type { WebhookEvent } from "@shared/webhooks";
 import { db } from "../db";
-import { workflows } from "@shared/schema";
+import { workflows, connections } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import * as github from "../integrations/github";
+import * as taskade from "../integrations/taskade";
 
 /**
  * Execute a workflow triggered by a webhook event
@@ -52,9 +54,9 @@ async function executeAction(
 
   // Route to appropriate action handler based on service
   if (targetService === "github") {
-    await executeGitHubAction(action, context);
+    await executeGitHubAction(action, context, workflow);
   } else if (targetService === "taskade") {
-    await executeTaskadeAction(action, context);
+    await executeTaskadeAction(action, context, workflow);
   } else if (targetService === "slack") {
     await executeSlackAction(action, context);
   } else if (targetService === "notion") {
@@ -67,26 +69,127 @@ async function executeAction(
 /**
  * Execute GitHub actions (create issue, add comment, etc.)
  */
-async function executeGitHubAction(action: Record<string, any>, context: any): Promise<void> {
-  // Placeholder for GitHub API calls
-  // Will be implemented with actual GitHub API integration
-  console.log("GitHub action:", action.type, "with context:", context);
-  
-  // Example: create_issue action would call GitHub API here
-  // const octokit = new Octokit({ auth: apiToken });
-  // await octokit.rest.issues.create({ owner, repo, title, body });
+async function executeGitHubAction(
+  action: Record<string, any>,
+  context: any,
+  workflow: Workflow
+): Promise<void> {
+  // Get the specific GitHub connection associated with this workflow
+  if (!workflow.targetConnectionId) {
+    throw new Error("Workflow missing targetConnectionId for GitHub action");
+  }
+
+  const githubConnections = await db
+    .select()
+    .from(connections)
+    .where(eq(connections.id, workflow.targetConnectionId));
+
+  if (githubConnections.length === 0) {
+    throw new Error(`GitHub connection ${workflow.targetConnectionId} not found`);
+  }
+
+  const connection = githubConnections[0];
+  const params = action.params || {};
+
+  // Interpolate template strings in action parameters
+  const interpolatedParams = interpolateParams(params, context);
+
+  // Parse repository from connection config
+  const repositories = connection.config?.repositories || [];
+  const repository = repositories[0] || "";
+  const { owner, repo } = github.parseRepository(repository);
+
+  const config = {
+    token: connection.apiKey || "",
+    owner,
+    repo,
+  };
+
+  // Route to specific GitHub action
+  switch (action.type) {
+    case "create_issue":
+      await github.createIssue(config, {
+        title: interpolatedParams.title,
+        body: interpolatedParams.body,
+        labels: interpolatedParams.labels,
+        assignees: interpolatedParams.assignees,
+      });
+      console.log("Created GitHub issue:", interpolatedParams.title);
+      break;
+
+    case "add_comment":
+      await github.addComment(config, {
+        issueNumber: interpolatedParams.issueNumber,
+        body: interpolatedParams.body,
+      });
+      console.log("Added GitHub comment to issue:", interpolatedParams.issueNumber);
+      break;
+
+    default:
+      console.warn(`Unknown GitHub action type: ${action.type}`);
+  }
 }
 
 /**
  * Execute Taskade actions (create task, update task, etc.)
  */
-async function executeTaskadeAction(action: Record<string, any>, context: any): Promise<void> {
-  // Placeholder for Taskade API calls
-  // Will be implemented with actual Taskade API integration
-  console.log("Taskade action:", action.type, "with context:", context);
-  
-  // Example: create_task action would call Taskade API here
-  // await fetch(taskadeWebhookUrl, { method: 'POST', body: JSON.stringify(taskData) });
+async function executeTaskadeAction(
+  action: Record<string, any>,
+  context: any,
+  workflow: Workflow
+): Promise<void> {
+  // Get the specific Taskade connection associated with this workflow
+  if (!workflow.targetConnectionId) {
+    throw new Error("Workflow missing targetConnectionId for Taskade action");
+  }
+
+  const taskadeConnections = await db
+    .select()
+    .from(connections)
+    .where(eq(connections.id, workflow.targetConnectionId));
+
+  if (taskadeConnections.length === 0) {
+    throw new Error(`Taskade connection ${workflow.targetConnectionId} not found`);
+  }
+
+  const connection = taskadeConnections[0];
+  const params = action.params || {};
+
+  // Interpolate template strings in action parameters
+  const interpolatedParams = interpolateParams(params, context);
+
+  const config = {
+    token: connection.apiKey || "",
+    projectId: connection.config?.projectId,
+  };
+
+  // Route to specific Taskade action
+  switch (action.type) {
+    case "create_task":
+      await taskade.createTask(config, {
+        title: interpolatedParams.title,
+        description: interpolatedParams.description,
+        project: interpolatedParams.project,
+        priority: interpolatedParams.priority,
+        dueDate: interpolatedParams.dueDate,
+      });
+      console.log("Created Taskade task:", interpolatedParams.title);
+      break;
+
+    case "update_task":
+      await taskade.updateTask(config, {
+        taskId: interpolatedParams.taskId,
+        title: interpolatedParams.title,
+        description: interpolatedParams.description,
+        completed: interpolatedParams.completed,
+        priority: interpolatedParams.priority,
+      });
+      console.log("Updated Taskade task:", interpolatedParams.taskId);
+      break;
+
+    default:
+      console.warn(`Unknown Taskade action type: ${action.type}`);
+  }
 }
 
 /**
@@ -127,4 +230,25 @@ function getNestedValue(obj: any, path: string): any {
     }
     return current?.[key];
   }, obj);
+}
+
+/**
+ * Interpolate all string values in action parameters
+ */
+function interpolateParams(params: Record<string, any>, context: any): Record<string, any> {
+  const result: Record<string, any> = {};
+  
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") {
+      result[key] = interpolateTemplate(value, context);
+    } else if (Array.isArray(value)) {
+      result[key] = value.map(item => 
+        typeof item === "string" ? interpolateTemplate(item, context) : item
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+  
+  return result;
 }
