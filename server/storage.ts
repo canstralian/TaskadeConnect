@@ -61,7 +61,7 @@ export class Storage implements IStorage {
 
   async createConnection(data: InsertConnection): Promise<Connection> {
     // Generate webhook URL and secret for services that support webhooks
-    const webhookServices = ["github", "taskade"];
+    const webhookServices = ["github", "taskade", "notion"];
     const needsWebhook = webhookServices.includes(data.service);
     
     const connectionData: any = { ...data };

@@ -5,8 +5,10 @@ import { eq } from "drizzle-orm";
 import {
   verifyGitHubSignature,
   verifyTaskadeWebhook,
+  verifyNotionSignature,
   extractGitHubEvent,
   extractTaskadeEvent,
+  extractNotionEvent,
 } from "./verification";
 import { findMatchingWorkflows, matchesFilters } from "./matcher";
 import { executeWorkflow } from "./executor";
@@ -60,6 +62,12 @@ export async function handleWebhook(req: Request, res: Response) {
       
       verificationResult = verifyTaskadeWebhook(parsedBody, authHeader, secret);
       eventType = extractTaskadeEvent(parsedBody);
+    } else if (service === "notion") {
+      const signature = req.headers["notion-signature"] as string;
+      const secret = connection.webhookSecret || "";
+      
+      verificationResult = verifyNotionSignature(rawBodyBuffer, signature, secret);
+      eventType = extractNotionEvent(parsedBody);
     } else {
       return res.status(400).json({ error: "Unsupported service" });
     }

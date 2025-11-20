@@ -110,3 +110,65 @@ export function extractTaskadeEvent(payload: any): string | null {
 
   return eventMap[payload.event_type] || `taskade.${payload.event_type}`;
 }
+
+/**
+ * Verify Notion webhook signature using HMAC-SHA256
+ * Notion sends signature in Notion-Signature header
+ * @param payload - Raw Buffer containing the exact bytes Notion signed
+ * @param signature - Value from Notion-Signature header
+ * @param secret - Webhook secret from Notion integration settings
+ */
+export function verifyNotionSignature(
+  payload: Buffer,
+  signature: string | undefined,
+  secret: string
+): VerificationResult {
+  if (!signature) {
+    return { valid: false, error: "Missing Notion-Signature header" };
+  }
+
+  // Compute HMAC-SHA256 on the raw bytes
+  const hash = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+
+  // Notion uses hex signature without prefix
+  const expectedSignature = hash;
+
+  // Use constant-time comparison to prevent timing attacks
+  const signatureBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+  
+  if (signatureBuffer.length !== expectedBuffer.length) {
+    return { valid: false, error: "Signature mismatch" };
+  }
+
+  try {
+    const valid = crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+    return valid ? { valid: true } : { valid: false, error: "Signature mismatch" };
+  } catch (e) {
+    return { valid: false, error: "Signature verification failed" };
+  }
+}
+
+/**
+ * Extract Notion event type from payload
+ */
+export function extractNotionEvent(payload: any): string | null {
+  if (!payload || !payload.type) {
+    return null;
+  }
+
+  // Map Notion event types to internal format
+  const eventMap: Record<string, string> = {
+    "page.created": "notion.page.created",
+    "page.updated": "notion.page.updated",
+    "page.deleted": "notion.page.deleted",
+    "database.created": "notion.database.created",
+    "database.updated": "notion.database.updated",
+    "database.deleted": "notion.database.deleted",
+  };
+
+  return eventMap[payload.type] || `notion.${payload.type}`;
+}
