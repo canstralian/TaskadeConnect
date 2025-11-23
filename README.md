@@ -1,6 +1,16 @@
 
 # SyncNode - Workflow Automation Platform
 
+[![GitHub Stars](https://img.shields.io/github/stars/canstralian/TaskadeConnect?style=for-the-badge)](https://github.com/canstralian/TaskadeConnect/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/canstralian/TaskadeConnect?style=for-the-badge)](https://github.com/canstralian/TaskadeConnect/forks)
+[![Issues](https://img.shields.io/github/issues/canstralian/TaskadeConnect?style=for-the-badge)](https://github.com/canstralian/TaskadeConnect/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/canstralian/TaskadeConnect?style=for-the-badge)](https://github.com/canstralian/TaskadeConnect/pulls)
+[![License](https://img.shields.io/github/license/canstralian/TaskadeConnect?style=for-the-badge)](LICENSE)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/canstralian/TaskadeConnect/ci.yml?style=for-the-badge&label=CI)](../../actions)
+
+[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen?style=for-the-badge)](CONTRIBUTING.md)
+[![Join Discussions](https://img.shields.io/badge/GitHub-Discussions-blue?style=for-the-badge)](../../discussions)
+
 A modern workflow automation platform that enables seamless data synchronization between different services like Taskade, Notion, Replit, and Slack.
 
 ## Overview
